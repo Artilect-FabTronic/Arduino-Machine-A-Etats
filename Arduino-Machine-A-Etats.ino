@@ -16,10 +16,17 @@
   This example code is in the public domain.
 
   http://www.arduino.cc/en/Tutorial/SerialEvent
+
+  Voir Communication > Serial
+  https://www.arduino.cc/reference/en/language/functions/communication/serial/
+
 */
 
 String inputString = "";     // a String to hold incoming data
 bool stringComplete = false; // whether the string is complete
+
+// RX_STATE_IDLE
+// RX_STATE_RECEIVED
 
 void setup()
 {
@@ -27,14 +34,30 @@ void setup()
     Serial.begin(9600);
     // reserve 200 bytes for the inputString:
     inputString.reserve(200);
+
+    Serial.println("Demo MAE Version 0.0.1\n");
 }
 
 void loop()
 {
-    // print the string when a newline arrives:
+    serialEvent();
+
     if (stringComplete)
     {
+        Serial.println(); // faire un saut de ligne entre les réponses
+        Serial.print("Le message recu est : ");
         Serial.println(inputString);
+
+        // test de la réponse du joueur
+        if (inputString == ":LED2ON\r\n")
+        {
+            Serial.println("Vous voulez allumer la LED 2");
+        }
+        else
+        {
+            Serial.println("Erreur, commande invalide...");
+        }
+
         // clear the string:
         inputString = "";
         stringComplete = false;
@@ -48,12 +71,12 @@ void loop()
 */
 void serialEvent()
 {
-    while (Serial.available())
+    if (Serial.available() > 0)
     {
         // get the new byte:
         char inChar = (char)Serial.read();
         // add it to the inputString:
-        inputString += inChar;
+        inputString += inChar; // ":LED2ON\r\n"
         // if the incoming character is a newline, set a flag so the main loop can
         // do something about it:
         if (inChar == '\n')
