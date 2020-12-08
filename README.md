@@ -29,3 +29,5 @@ Exemple de message à recevoir pour changer l'état d'une LED de D0 à D5 :
 ### Codage à réaliser
 
 A partir de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino, nous allons modifier la manière de recevoir les données pour créer une machine à états.
+
+![Diagramme d'état du mode réception d'une trame ASCII](Images/diagramme_de_reception.png)
