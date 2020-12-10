@@ -14,7 +14,7 @@
 #include "Arduino.h"
 
 //void serialEvent();
-void readSerial();
+//void readSerial();
 void gereLED();
 
 const int maxBufferModbus = 200;    // max size for modbus buffer
@@ -69,37 +69,6 @@ void loop()
 
 }
 
-/*
-  SerialEvent occurs whenever a new data comes in the hardware serial RX. This
-  routine is run between each time loop() runs, so using delay inside loop can
-  delay response. Multiple bytes of data may be available.
-*/
-void readSerial()
-{
-    if (Serial.available() > 0)
-    {
-        // get the new byte:
-        char inChar = (char)Serial.read();
-        // add it to the inputString:
-        inputString += inChar; // ":LED2ON\r\n"
-
-        // on traite differement certains caracteres particluiers
-
-        // debut de chaine
-        if (inChar == ':')   {
-            // clear the string
-            inputString = "";
-            // repassage a l etat debut de chaine
-            stateOfMachine = StateM::received;
-        }
-        // if the incoming character is a newline, set a flag so the main loop can
-        // do something about it:
-        if (inChar == '\n')
-        {
-//            isStringComplete = true;
-        }
-    }
-}
 
 void gereLED()
 {
