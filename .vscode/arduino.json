@@ -1,5 +1,5 @@
 {
-    "board": "arduino:samd:mkrzero",
-    "port": "COM3",
+    "board": "arduino:avr:uno",
+    "port": "COM34",
     "sketch": "Arduino-Machine-A-Etats.ino"
 }

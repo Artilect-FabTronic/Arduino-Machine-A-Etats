@@ -3,13 +3,16 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:\\Program Files (x86)\\Arduino\\tools\\**",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\**",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
                 "C:\\Users\\Asus-Home\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\**",
                 "D:\\Dossier Arnauld\\Documents\\Arduino\\libraries\\**",
                 "C:\\Program Files (x86)\\Arduino\\libraries\\**",
                 "C:\\Users\\Asus-Home\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\samd\\1.8.9\\**"
             ],
             "forcedInclude": [
-                "C:\\Users\\Asus-Home\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\samd\\1.8.9\\cores\\arduino\\Arduino.h"
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
             ],
             "defines": [
                 "USBCON"
