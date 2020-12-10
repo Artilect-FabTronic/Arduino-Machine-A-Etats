@@ -1,26 +1,20 @@
 /*
-  Serial Event example
+  sketch for state machine example
+    we implement the reception of a modbus frame
+    it is derived from the official Serial Event example, see :
+    http://www.arduino.cc/en/Tutorial/SerialEvent
 
-  When new serial data arrives, this sketch adds it to a String.
-  When a newline is received, the loop prints the string and clears it.
-
-  A good test for this is to try it with a GPS receiver that sends out
-  NMEA 0183 sentences.
 
   NOTE: The serialEvent() feature is not available on the Leonardo, Micro, or
   other ATmega32U4 based boards.
 
-  created 9 May 2011
-  by Tom Igoe
-
   This example code is in the public domain.
 
-  http://www.arduino.cc/en/Tutorial/SerialEvent
-
-  Voir Communication > Serial
-  https://www.arduino.cc/reference/en/language/functions/communication/serial/
-
 */
+#include "Arduino.h"
+
+void serialEvent();
+
 
 String inputString = "";     // a String to hold incoming data
 bool stringComplete = false; // whether the string is complete
@@ -35,7 +29,7 @@ void setup()
     // reserve 200 bytes for the inputString:
     inputString.reserve(200);
 
-    Serial.println("Demo MAE Version 0.0.1\n");
+    Serial.println(String("sketch: ")+ __FILE__ + ", built on " + __DATE__);
 }
 
 void loop()
