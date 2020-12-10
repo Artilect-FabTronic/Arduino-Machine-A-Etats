@@ -40,7 +40,8 @@ void setup()
 
 void loop()
 {
-    serialEvent();
+    // serialEvent();  
+    // pas nécessaire car l'appel à serialEvent() s'effectue par défaut à chaque "loop"
 
     if (stringComplete)
     {
