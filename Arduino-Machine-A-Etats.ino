@@ -1,20 +1,36 @@
 /*
-  Serial Event example
+  Démo de réception de données gérées par une machine à états (événement série "Serial Event")
+  
+  Lorsque de nouvelles données série arrivent, la machine à états les ajoute à une chaîne de réception,
+  on parle alors d'un buffer de réception (voir le tableau g_message_recu[])
+  
+  Lorsqu'un message est reçu en totalité, c'est à dire que le message commande par le caractère ':' et
+  qu'il se termine par les caractères de fin de chaîne '\r' et '\n' (CR, LF), alors la machine à états
+  averti le programme principale (la fonction loop()) en mettant la variable g_nouveau_message_a_lire à la valeur vrai (1)
+  le message est alors renvoyé sur le port série (on parle alors d'un echo) et si une commande est reconnue alors
+  le programme réalise l'action demandée.
 
-  When new serial data arrives, this sketch adds it to a String.
-  When a newline is received, the loop prints the string and clears it.
+  REMARQUE: la fonction serialEvent() n'est pas disponible sur les cartes
+            Leonardo, Micro ou autres cartes ATmega32U4 ou version MKR
+            il convient donc de l'appeler dans la fonction loop() afin
+            de garantir la compatibilité du code sur différentes cartes.
 
-  A good test for this is to try it with a GPS receiver that sends out
-  NMEA 0183 sentences.
+  Ce programme est basé la version d'origine de la démo SerialEvent.ino,
+  qui a été créé par Tom Igoe le 9 mai 2011
+  
+  Par convention :
+  
+    - les mots définis avec #define sont écrit en majuscule
+    - toutes les variables sont écrites en minuscule en utilisant du snake case (exemple : ma_variable)
+      https://fr.wikipedia.org/wiki/Snake_case
+    - les variables globales commence par "g_", le 'g' signifiant que c'est une variable globale
+    - les variables locales déclarées en static commence par '_',
+      elles ont la particularité de conserver leur valeur dans la fonction entre deux appels.
+  
+  Cet exemple de code est dans le domaine public.
 
-  NOTE: The serialEvent() feature is not available on the Leonardo, Micro, or
-  other ATmega32U4 based boards.
-
-  created 9 May 2011
-  by Tom Igoe
-
-  This example code is in the public domain.
-
+  Voici une liste de lien vers des références permettant d'approfondir ce sujet :
+  
   http://www.arduino.cc/en/Tutorial/SerialEvent
 
   Voir Communication > Serial
@@ -44,122 +60,157 @@
 */
 
 /*****************************************************************************/
+// Semantic Versioning Specification (SemVer)
+// http://semver.org/
+
+// VERSION = MAJOR.MINOR.PATCH
+//   - MAJOR: version when you make incompatible API changes,
+//   - MINOR: version when you add functionality in a backwards-compatible manner, and
+//   - PATCH: version when you make backwards-compatible bug fixes.
+#define MAJOR "0"
+#define MINOR "1"
+#define PATCH "0"
+#define VERSION MAJOR + "." + MINOR + "." + PATCH
+//#define VERSION "0.1.0"
+
+/*****************************************************************************/
 // Import des fonctions externes au fichier principal
 //#include <Arduino.h>
 #include "tempo.h"
 
 /*****************************************************************************/
 // Définition des E/S matérielles - Definition of hardware I/O (GPIO)
-#define LED_STATUS_PIN LED_BUILTIN // the number of the LED pin for unknown board type
-#define LED_RX_DATA_PIN 8          // the number of the LED pin for unknown board type
+#define LED_PIN LED_BUILTIN // le numéro de la broche utilisé pour le pilotage de la LED
+#define LED_RX_DATA_PIN 8   // the number of the LED pin for unknown board type
 
 /*****************************************************************************/
 // Fonction permettant le changement d'état d'une sortie
-#define GPIO_ToggleOutput(output_pin)                                                                  \
-    {                                                                                                  \
-        digitalWrite(output_pin, !digitalRead(output_pin)); /* change the output pin _fms_rx_status */ \
+#define GPIO_ToggleOutput(output_pin)                       \
+    {                                                       \
+        digitalWrite(output_pin, !digitalRead(output_pin)); \
     }
-
-#define LED_RED_PIN 0 // the number of the LED pin
 
 /*****************************************************************************/
 // Création de l'objet "temporisationLedStatus" depuis la classe Tempo
-Tempo temporisationLedStatus; // tempo pour le clignotement de la LED status
+Tempo temporisationLed; // tempo pour le clignotement de la LED
 
 /*****************************************************************************/
-// Définition pour la reception d'une trame
-#define MAX_FRAME_LENGTH 30 // longueur maximal de la trame
+// Définition pour la réception d'une trame, d'un message
+// Il est nécessaire d'avoir une place supplémentaire dans le tableau de réception afin de pouvoir ajouter le caractère de fin de chaîne '\0'
+#define MAX_FRAME_LENGTH 11 // le nombre de caractères maximum est MAX_FRAME_LENGTH-1, donc ici nous pouvons recevoir jusqu'à 10 caractères
+
 /* Variable globales                                                         */
-char message_recu[MAX_FRAME_LENGTH]; // Buffer qui stocke les caractères ASCII reçu
-uint8_t compteur_msg_perdu = 0;      // permet de savoir si l'on a loupé la lecture d'un ou plusieurs nouveaux messages
-bool nouveau_message_a_lire = false; // indique qu'un nouveau message est disponible
-
-/*****************************************************************************/
-#define DEBUG 1
-#if DEBUG
-#define FSM_STATE(s)           \
-    {                          \
-        Serial.print(F("n:")); \
-        Serial.println(F(s));  \
-    }
-
-#define FSM_ERROR(s)           \
-    {                          \
-        Serial.print(F("n:")); \
-        Serial.println(F(s));  \
-    }
-#else
-#define FSM__fms_rx_status(s)
-#define FSM_ERROR(s)
-#endif
+char g_message_recu[MAX_FRAME_LENGTH]; // buffer qui stocke les caractères ASCII reçu
+uint8_t g_compteur_msg_perdu = 0;      // permet de savoir si l'on a loupé la lecture d'un ou plusieurs messages
+bool g_nouveau_message_a_lire = false; // si vrai, indique qu'un nouveau message est disponible
 
 /*****************************************************************************/
 // Fonction d'initialisation au démarrage du programme
 void setup()
 {
     // Initialiser les broches d'entrées/sorties
-    pinMode(LED_STATUS_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
     pinMode(LED_RX_DATA_PIN, OUTPUT);
 
     // Initialiser la communication série
     Serial.begin(9600);
 
-    // reserve 200 bytes for the inputString:
-    //inputString.reserve(200);
-
-    Serial.println("Demo MAE/FSM Version 0.0.1\n");
+    Serial.println(); // faire un saut de ligne entre les réponses
+    Serial.println("==========================");
+    Serial.println(String("Demo MAE/FSM Version ") + VERSION);
+    Serial.println("==========================\n");
+    Serial.println(String("sketch: ") + __FILE__ + ", built on " + __DATE__);
 
     // Initialize and configure all timeout:
-    temporisationLedStatus.begin(500); // start tempo for 500 ms
+    temporisationLed.begin(500); // start tempo for 500 ms
 }
 
 /*****************************************************************************/
 // Fonction principale du programme
 void loop()
 {
-    serialEvent(); // facultatif avec carte UNO ; n'est pas facultatif avec d'autres cartes
+    // Step 1: Vérifier l'évolution du système
+    // aucune mise à jour des entrées/sorties ou des variables n'est nécessaire pour le moment...
 
-    // Main APP FSM, Step 1: check I/O update
-    // aucunes mise à jours necessaire pour le moment
+    // Step 2: Traitement des tempos
+    // aucune tempo à mettre à jour
 
-    // Main APP FSM, Step 2: tempo processing
-    // traitement des tempos
-    if (temporisationLedStatus.isTimeEnding())
-    {
-        GPIO_ToggleOutput(LED_STATUS_PIN); // blink the LED
-    }
+    // Step 3: Traitement des tâches et des actions à réaliser par le programme principale
 
-    if (compteur_msg_perdu > 0)
+    // Step 3-1: Appel de la routine de réception de données depuis le port série
+    // facultatif avec carte UNO, mais indispensable avec d'autres cartes
+    // donc mettre cette fonction dans la loop() n'est pas un problème, bien au contraire
+    serialEvent();
+
+    // Step 3-2: Gestion des erreurs lors de la réception de données depuis le port série
+    if (g_compteur_msg_perdu != 0)
     {
         Serial.println(); // faire un saut de ligne entre les réponses
         Serial.print("Erreur message, le nbr de msg perdu est : ");
-        Serial.println(compteur_msg_perdu);
-        compteur_msg_perdu = 0; // RAZ du nombre de message perdu
+        Serial.println(g_compteur_msg_perdu); // afficher le nombre de message perdu
+        g_compteur_msg_perdu = 0;             // RAZ du nombre de message perdu
     }
 
-    if (nouveau_message_a_lire == true)
+    // Step 3-3: Gestion de l'arrivée d'un nouveau message depuis le port série
+    if (g_nouveau_message_a_lire == true)
     {
-        Serial.println(); // faire un saut de ligne entre les réponses
-        Serial.print("Le message recu est : ");
-        Serial.println(message_recu);
+        // Afficher le nouveau message
+        Serial.print("Message recu : ");
+        Serial.println(g_message_recu); // faire un echo du message reçu
 
-        // test de la réponse du joueur, "equal" si strcmp retourne zero
-        if (strcmp(message_recu, "LED2ON") == 0)
+        // Comparaison avec les différentes commandes
+        // lorsque la fonction strcmp retourne zéro, c'est qu'il y a égalité entre les deux chaînes comparées
+        if ((strcmp(g_message_recu, "AIDE") == 0) || (strcmp(g_message_recu, "aide") == 0))
         {
-            Serial.println("Vous voulez allumer la LED 2");
+            // Si l'on reçoit "AIDE" ou "aide" alors on affiche l'aide
+            Serial.println("Voici la liste des commandes pour changer l'etat de la LED :");
+            Serial.println("  - \":LED ON<CR><LF>\"");
+            Serial.println("  - \":LED OFF<CR><LF>\"");
+            Serial.println("  - \":LED TOGGLE<CR><LF>\"");
+        }
+        else if (strcmp(g_message_recu, "LED ON") == 0)
+        {
+            // Si l'on reçoit "LED ON" alors on allume la LED
+            Serial.println("Allumage de la LED.");
+            digitalWrite(LED_PIN, HIGH);
+        }
+        else if (strcmp(g_message_recu, "LED OFF") == 0)
+        {
+            // Si l'on reçoit "LED OFF" alors on éteint la LED
+            Serial.println("Extinction de la LED.");
+            digitalWrite(LED_PIN, LOW);
+        }
+        else if (strcmp(g_message_recu, "LED TOGGLE") == 0)
+        {
+            // Si l'on reçoit "LED TOGGLE" alors on change l'état de la LED
+            Serial.println("Inverser l'etat de la LED.");
+            GPIO_ToggleOutput(LED_PIN);
         }
         else
         {
-            Serial.println("Erreur, commande invalide...");
+            // Si aucune commande ne correspond alors on l'indique à l'utilisateur
+            Serial.println("Commande invalide!");
+            Serial.println("Afficher la liste des commandes en envoyant \":AIDE<CR><LF>\".");
         }
 
-        message_recu[0] = '\0'; // effacer la chaîne reçu
-        nouveau_message_a_lire = false;
+        // RAZ du drapeau indiquant l'arrivée d'un nouveau message
+        g_nouveau_message_a_lire = false; // la remise à zéro permet de recevoir un nouveau message
     }
 }
 
 /*
   SerialEvent est exécutée à chaque fois qu'une nouvelle donnée arrive sur la broche RX du port série.
+  
+  Les différents états pour la réception d'un message série sont :
+  
+  - RX_STATE_IDLE       : Attente du caractère ':' déclenchant l'acquisition d'un nouveau message. 
+  - RX_STATE_RECEIVED   : Accumulation des caractères du message jusqu'à la détection du caractère '\r'.
+                          Durant cet état, si un caractère '\n' ou un caractère non ASCII est reçu,
+                          alors on retourne à l'état RX_STATE_IDLE.
+                          Si c'est le caractère ':' qui est à nouveau reçu, alors on efface les données
+                          précédemment reçues et on relance RX_STATE_RECEIVED.
+  - RX_STATE_WAIT_EOF   : Validation de la réception du message avec le caractère '\n'.
+                          (EOF signifie "End Of Frame", soit "fin du message")
 */
 typedef enum
 {
@@ -170,88 +221,118 @@ typedef enum
 
 void serialEvent()
 {
-    static char _buffer_des_donnees_recues[MAX_FRAME_LENGTH]; // une chaîne pour contenir toutes les données entrantes
-    static uint8_t _index_du_buffer = 0;                      // itérateur qui permet d'indexer le tableau "_buffer_des_donnees_recues"
-
-    static fsm_rx_state_typedef _mae_rx_etat_en_cours = RX_STATE_IDLE;
+    static uint8_t _index_du_buffer = 0;                               // itérateur qui permet d'indexer le buffer des données reçues
+    static fsm_rx_state_typedef _mae_rx_etat_en_cours = RX_STATE_IDLE; // stock l'état courant de la réception d'un message
 
     while (Serial.available() > 0)
     {
-        char la_donnee_recu = (char)Serial.read(); // lecture d'un nouveau octet reçu
-        GPIO_ToggleOutput(LED_RX_DATA_PIN);
+        digitalWrite(LED_RX_DATA_PIN, HIGH);
+        char _la_donnee_recu = (char)Serial.read(); // lecture d'un nouveau octet reçu
 
         switch (_mae_rx_etat_en_cours)
         {
         case RX_STATE_IDLE:
-            if (la_donnee_recu == ':')
+            if (_la_donnee_recu == ':')
             {
-                _index_du_buffer = 0;              // RAZ de l'index d'écriture dans le tableau
-                _buffer_des_donnees_recues[0] = 0; // juste pour le premier élément
-                //memset(_buffer_des_donnees_recues, 0, MAX_FRAME_LENGTH); // mettre 0 dans toutes les cellules du tableau "input_data_frame"
-                _mae_rx_etat_en_cours = RX_STATE_RECEIVED;
+                // Si le message précédent a été lu,
+                // alors "g_nouveau_message_a_lire" doit être mis à false par le programme principale
+                // dans ce cas on accepte la lecture du nouveau message entrant
+                if (g_nouveau_message_a_lire == false)
+                {
+                    _index_du_buffer = 0; // RAZ de l'index d'écriture dans le tableau
+                    _mae_rx_etat_en_cours = RX_STATE_RECEIVED;
+                }
+                else
+                {
+                    // Erreur : message précédent non lu !
+                    // En cas de message non lu, on incrémente le compteur des messages perdus
+                    // et on attend le prochain message...
+                    g_compteur_msg_perdu++;
+                }
             }
             break;
 
         case RX_STATE_RECEIVED:
-            if (la_donnee_recu == '\r')
+            if (_la_donnee_recu == '\r')
             {
+                // Si l'on reçoit le caractère CR ('\r' ou encore 0x0D)
+                // c'est la fin du message, ne reste plus que le dernier caractère de fin de chaîne '\n' à recevoir.
                 _mae_rx_etat_en_cours = RX_STATE_WAIT_EOF;
             }
-            else if (la_donnee_recu == ':')
+            else if (_la_donnee_recu == '\n')
             {
-                _index_du_buffer = 0;              // RAZ de l'index d'écriture dans le tableau
-                _buffer_des_donnees_recues[0] = 0; // juste pour le premier élément
-                //memset(_buffer_des_donnees_recues, 0, MAX_FRAME_LENGTH); // mettre 0 dans toutes les cellules du tableau "input_data_frame"
-            }
-            else if (la_donnee_recu == '\n')
-            {
+                // Erreur : ce n'est pas le bon caractère de fin de chaîne !
+                // Si la séquence de fin de chaîne n'est pas correcte,
+                // on abandonne le message en cours de réception,
+                // on incrémente le compteur des messages perdus,
+                // et on attend le prochain message.
+                g_compteur_msg_perdu++;
                 _mae_rx_etat_en_cours = RX_STATE_IDLE;
+            }
+            else if (_la_donnee_recu == ':')
+            {
+                // Erreur : réception du caractère de début de chaîne !
+                // Si on reçoit le caractère de début de chaîne,
+                // on abandonne le message en cours de réception
+                // et on lit le nouveau message entrant.
+                g_compteur_msg_perdu++;
+                _index_du_buffer = 0; // RAZ de l'index d'écriture dans le tableau
             }
             else
             {
-                // ajoutez chaque nouveau caractère au buffer local dans tableau "_buffer_des_donnees_recues"
-                _buffer_des_donnees_recues[_index_du_buffer] = la_donnee_recu; // ajout de la donnee reçu dans le buffer
-                _index_du_buffer++;                                            // on incrémente l'index du tableau
+                // Si nous recevons juste un nouveau caractère,
+                // ajoutez chaque caractère dans le buffer de réception.
+                g_message_recu[_index_du_buffer] = _la_donnee_recu; // ajout de la donnée reçu dans le buffer
+                _index_du_buffer++;                                 // on incrémente l'index du tableau
+
+                if (_index_du_buffer > MAX_FRAME_LENGTH - 1)
+                {
+                    // Erreur : si la valeur de l'index indique que nous allons dépasser la taille du buffer de réception
+                    // avant d'avoir reçu le caractère de fin du message, alors on abandonne le message en cours de réception
+                    // et on attend le prochain message.
+                    g_compteur_msg_perdu++;
+                    _mae_rx_etat_en_cours = RX_STATE_IDLE;
+                }
             }
             break;
 
         case RX_STATE_WAIT_EOF:
-            // Si le caractère entrant est 'LF' (caractère nouvelle ligne),
-            // mettre à vrai le drapeau "nouveau_message_a_lire" pour que la boucle principale
-            // puisse lire le message fraîchement reçu
-            if (la_donnee_recu == '\n')
+            // Si le caractère entrant est 'LF' (caractère nouvelle ligne = 0x0A),
+            // mettre à vrai le drapeau "g_nouveau_message_a_lire" pour que la boucle principale
+            // puisse lire le nouveau message reçu
+            if (_la_donnee_recu == '\n')
             {
-                // Si le "message_recu" précédament a été lu, alors "nouveau_message_a_lire" dois être égale à false
-                if (nouveau_message_a_lire == false)
-                {
-                    // Copie du buffer de message en reception dans le tableau "message_recu"
-                    uint8_t i;
-                    for (i = 0; i < _index_du_buffer; i++)
-                    {
-                        message_recu[i] = _buffer_des_donnees_recues[i]; // copier un par un chaque donnée reçue
-                    }
-                    message_recu[i] = '\0';        // ajouter le caractère null en fin de chaine
-                    nouveau_message_a_lire = true; // signaler qu'un nouveau message est arrivée
-                }
-                else
-                {
-                    compteur_msg_perdu++;
-                }
-
-                _mae_rx_etat_en_cours = RX_STATE_IDLE; // on ré-initialise pour le prochain message à recevoir
+                g_message_recu[_index_du_buffer] = '\0'; // ajouter le caractère null en fin de chaîne
+                g_nouveau_message_a_lire = true;         // signaler qu'un nouveau message est arrivée
+                _mae_rx_etat_en_cours = RX_STATE_IDLE;   // on ré-initialise pour le prochain message à recevoir
             }
-            else if (la_donnee_recu == ':')
+            else if (_la_donnee_recu == ':')
             {
-                _index_du_buffer = 0;              // RAZ de l'index d'écriture dans le tableau
-                _buffer_des_donnees_recues[0] = 0; // juste pour le premier élément
-                //memset(_buffer_des_donnees_recues, 0, MAX_FRAME_LENGTH); // mettre 0 dans toutes les cellules du tableau "input_data_frame"
+                // Erreur : réception du caractère de début de chaîne !
+                // Si on reçoit le caractère de début de chaîne,
+                // on abandonne le message en cours de réception
+                // et on lit le nouveau message entrant.
+                g_compteur_msg_perdu++;
+                _index_du_buffer = 0; // RAZ de l'index d'écriture dans le tableau
                 _mae_rx_etat_en_cours = RX_STATE_RECEIVED;
             }
             else
             {
+                // Erreur : reception d'un caractère différent de celui attendu pour valider la réception du message !
+                // Si la séquence de fin de chaîne n'est pas correcte,
+                // on abandonne le message en cours de reception
+                // et on attend le prochain message.
+                g_compteur_msg_perdu++;
                 _mae_rx_etat_en_cours = RX_STATE_IDLE;
             }
             break;
+
+        default:
+            // En cas de dernier recours si _mae_rx_etat_en_cours a perdu les pédales
+            // on ré-initialise la machine à états
+            _mae_rx_etat_en_cours = RX_STATE_IDLE;
         }
+
+        digitalWrite(LED_RX_DATA_PIN, LOW);
     }
 }
