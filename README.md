@@ -40,9 +40,11 @@ Source : <http://www.ozeki.hu/p_5855-ozeki-modbus-ascii.html>
 
 Exemple de messages que doit recevoir le microcontrôleur pour changer l'état de notre LED :
 
+```serial
 ":LED ON\r\n"
 ":LED OFF\r\n"
 ":LED TOGGLE\r\n"
+```
 
 Mais si vous essayez d'écrire une commande en minuscule, ça ne fonctionne pas :
 
@@ -61,7 +63,7 @@ La raison est que ce qui est transmis du PC au microcontrôleur ne sont que des 
 | Valeur Hexa | 0x3A  | 0x6C  | 0x65  | 0x64  | 0x20  | 0x74  | 0x6F  | 0x67  | 0x67  | 0x6C  | 0x65  | 0x0D  | 0x0A  |
 
 On peut remarquer que les caractères en minuscule ont une valeur de codage supérieure de + 0x20 par rapport aux même lettres en majuscule.
-Ce codage est défini par [le code ASCII](https://www.commentcamarche.net/contents/93-code-ascii), voir [table ASCII](https://fr.wikibooks.org/wiki/Les_ASCII_de_0_%C3%A0_127/La_table_ASCII)
+Ce codage est défini par [le code ASCII](https://www.commentcamarche.net/contents/93-code-ascii), voir aussi la [table ASCII](https://fr.wikibooks.org/wiki/Les_ASCII_de_0_%C3%A0_127/La_table_ASCII)
 
 ---
 
@@ -70,3 +72,11 @@ Ce codage est défini par [le code ASCII](https://www.commentcamarche.net/conten
 A partir de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino, nous avons modifier la manière de recevoir les données pour créer une machine à états comme celle-ci :
 
 ![Diagramme d'états du mode réception d'une trame ASCII](Images/diagramme_de_reception.png)
+
+---
+
+### Test du programme Arduino avec Docklight
+
+[Docklight](https://docklight.de/) est un logiciel de terminal série :
+
+![capture_docklight](Images/capture_docklight.png)
