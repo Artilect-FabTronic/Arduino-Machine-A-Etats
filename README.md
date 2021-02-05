@@ -71,19 +71,29 @@ Ce codage est défini par [le code ASCII](https://www.commentcamarche.net/conten
 
 A partir de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino, nous avons commencé à modifier la manière de recevoir les données pour créer une machine à états.
 
+[Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph), l'extension pour Visual Studio Code
+
+![Visualiser l'extention Git Graph](Images/vs_code_extention_git_graph.png)
+
+---
+
 #### Code de la branche **main**
 
 Utilisation direct de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino.
+
+---
 
 #### Code de la branche **arnaud** de CrazyFraug
 
 Découpage en différentes fonctions, une par action à réaliser.
 
-Le traitement du message est separe de la lecture buffer
+Le traitement du message est séparé de la lecture buffer.
 
 La machine à états principale pour la reception est dans la fonction :
 
 `void readSerialWithStateMachine(String& amsgModbus)`
+
+---
 
 #### Code de la branche **Arnauld** de ArnauldDev
 
