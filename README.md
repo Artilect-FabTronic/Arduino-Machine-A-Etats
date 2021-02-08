@@ -6,7 +6,7 @@ Nous allons pour cela mettre en oeuvre une partie du [protocol Modbus](https://w
 
 [Format de message Modbus ASCII](https://www.virtual-serial-port.org/fr/articles/modbus-ascii-guide/)
 
-Le format des messages Modbus ASCII comprend un caractère de début qui est un deux-points ':' et la fin du message est définie par la combinaison d'un retour à la ligne et d'un saut de ligne (CR LF). Ce type de protocole permet de faire varier le temps de transmission de chaque donnée du message, comme lorsque celui-ci est entrée à la main dans un terminal.
+Le format des messages Modbus ASCII comprend un caractère de début qui est un deux-points ':' (Start-Of-Frames) et la fin du message est définie par la combinaison d'un retour à la ligne et d'un saut de ligne (CR LF = End-Of-Frame). Ce type de protocole permet de faire varier le temps de transmission de chaque donnée du message, comme lorsque celui-ci est entrée à la main dans un terminal.
 
 Voici une description complète d'un message Modbus ASCII :
 
@@ -14,13 +14,28 @@ Voici une description complète d'un message Modbus ASCII :
 | :---: | :-----: | :------: | :------ | :-----: | :---: |
 |  ':'  | 2 Chars | 2 Chars  | N Chars | 2 Chars | CR LF |
 
+Pour aller plus loin, voir "[MODBUS Protocol Specification](https://modbus.org/specs.php)" : [Protocol_V1_1b3](https://modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf).
+
+MODBUS utilise une représentation «big-endian» pour les adresses et les éléments de données. Cela signifie que lorsqu'une quantité numérique supérieure à un octet est transmise, l'octet le plus significatif est envoyé en premier.
+
+Donc par exemple, si la taille occupé par une valeur est de 16 bits comme **`0x1234`**, le premier octet envoyé est **`0x12`** puis l'octet suivant sera **`0x34`**.
+
+Voir également la description d'une trame ([page 12](https://modbus.org/docs/Modbus_over_serial_line_V1_02.pdf)) et [Big Endian and Little Endian](https://www.techno-science.net/definition/240.html) ([Coding](https://www.irif.fr/~carton/Enseignement/Architecture/Cours/Coding/index.html)).
+
+## Mise en oeuvre d'un protocol de communication
+
 Dans un premier temps, nous allons implémenter une version simple de ce protocol, sans ajouter à la trame l'adresse d'un destinataire, ni la valeur numérique permettant de vérifier l'intégrité des données de la trame. La gestion "Error Checking" du protocole (vérification d'erreur) ne sera donc pas implémentée.
 
 Le but est simplement de pouvoir capturer une trame au format [ASCII](https://en.wikipedia.org/wiki/ASCII) de manière autonome, en créant une machine à états.
 
-| Start | Data    |  End  |
-| :---: | :------ | :---: |
-|  ':'  | N Chars | CR LF |
+Après détection de la fin de la trame, nous rajoutons à notre protocol maison le calcul et la vérification d'un CRC16.
+Ce champ de vérification des erreurs basé sur une méthode de vérification de redondance cyclique (CRC), est appliquée au contenu du message.
+Par exemple si vous avez une valeur de CRC16 de 0x1234, voici comment ils seront intégrés à notre trame en convertissant chacun des digits en valeur ASCII :
+
+| Start     | Data     |     CRC16       |    End    |
+| :-------: | :------- | :-------------: | :-------: |
+|  1 octet  | N octets | 4 octets        | 2 octets  |
+|    ':'    | N Chars  | '1' '2' '3' '4' | CR LF     |
 
 Pour la réception de données à travers le port COM principale de la carte Arduino, nous utiliserons la fonction serialEvent() et nous prendrons soin de ne pas écraser un message par un nouveau avant d'avoir pu le lire.
 
