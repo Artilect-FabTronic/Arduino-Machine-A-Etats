@@ -28,6 +28,39 @@ Pour cela vous pouvez vous inspirez du diagramme d'états ci-dessous.
 
 ---
 
+## Quelques protocoles de communication que l'on retrouve sur le port série
+
+Les communications en série sont un moyen simple et souple pour mettre de l’intéraction entre la board Arduino, votre ordinateur et ainsi que d’autres périphériques. Votre sketch Arduino pourra utiliser le port série pour accéder indirectement (souvent par un proxy et dans un langage [Processing](https://processing.org/) ou en Python) à toutes les ressources de votre ordinateur. Dans l’autre sens, votre ordinateur saura évidement intéragir avec certains capteurs ou périphériques connectés à votre Arduino. Si vous souhaitiez utiliser plusieurs périphériques nécessitant plusieurs communications en série, soit vous utiliserez plus d’un port série, soit vous utiliserez un emulateur de port série qui utilisera les pins du microcontroller Arduino Uno. Certaines bibliothèques Arduino font cela très bien, citons le/la Software Serial Library.
+
+Les protocoles de communications en série permettent de transmettre des données, avec l’avantage par rapport à la communication en parallèle de pallier les interférences éloctromagnétiques. Parmi les protocoles de communications en série citons :
+
+* RS232 : utilisé par les souris avant l’arrivée du port USB au milieu des années 2000. C’est une transmissions dite asynchrone, car dépourvue d’horloge.
+* Hayes command set : c’est un langage de commande dédié au modem Smartmodem 300 bauds en 1981.
+
+Dans une communication en série, il est important de mesurer la force du signal et la solidité de la connexion pour déterminer un protocole cohérent.
+Un exemple simple se résumerait comme suit :
+
+- '^': starts a new command
+- 'L': Defines the command, (L: target this command to an LED)
+- '1': Target the first LED
+- ',': Command line separator, new value in this message to follow
+- 'F': Flash sub-command
+- '3': 3 times (Flash the LED three times)
+- '\n': End the command
+
+D’autres existe, comme le Wi-fi, le Bluetooth…
+
+Pour prolonger leur étude, vous pouvez utiliser le Serial Monitor de l’IDE Arduino, sinon voici quelques outils disponibles çà et là sur le web :
+
+* [CienTi](https://github.com/CieNTi/serial_port_plotter)
+* [CoolTerm](http://freeware.the-meiers.org/)
+* [Terminal](https://sites.google.com/site/terminalbpp/)
+* [Putty](https://www.chiark.greenend.org.uk/~sgtatham/putty/)
+* [Zterm](https://www.dalverson.com/zterm/) pour Mac
+* [Moserial](https://wiki.gnome.org/action/show/Apps/Moserial?action=show&redirect=moserial) pour linux
+
+---
+
 ## Algorithme d'émission/réception d'un message Modbus ASCII
 
 ![modbus-ascii-fsm-message](Images/modbus-ascii-fsm-message.png)
