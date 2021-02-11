@@ -133,7 +133,7 @@ void loop()
     // Step 3-1: Appel de la routine de réception de données depuis le port série
     // facultatif avec carte UNO, mais indispensable avec d'autres cartes
     // donc mettre cette fonction dans la loop() n'est pas un problème, bien au contraire
-    serialEvent();
+    myserialEvent();
 
     // Step 3-2: Gestion des erreurs lors de la réception de données depuis le port série
     if (g_compteur_msg_perdu != 0)
@@ -144,7 +144,12 @@ void loop()
         g_compteur_msg_perdu = 0;             // RAZ du nombre de message perdu
     }
 
-    // Step 3-3: Gestion de l'arrivée d'un nouveau message depuis le port série
+    // Step 3-3: Si il y a un nouveau message, alors on fait la vérification du CRC
+    if (g_nouveau_message_a_lire == true)
+    {
+    }
+
+    // FIXME: Step 3-4: Gestion de l'arrivée d'un nouveau message depuis le port série
     if (g_nouveau_message_a_lire == true)
     {
         // Afficher le nouveau message

@@ -2,6 +2,8 @@
 
 Ce projet collaboratif a pour but de comprendre le fonctionnement et l'implementation des machines à états pour structurer un programme embarqué.
 
+Le but est de mettre en oeuvre un exemple d'implémentation d'un [protocole série pour une carte Arduino](http://riton-duino.blogspot.com/2019/04/arduino-un-protocole-serie.html).
+
 Nous allons pour cela mettre en oeuvre une partie du [protocol Modbus](https://www.modbustools.com/modbus.html) qui peut être composé soit de données brut "RTU", soit de données textes "ASCII".
 
 [Format de message Modbus ASCII](https://www.virtual-serial-port.org/fr/articles/modbus-ascii-guide/)
@@ -19,6 +21,7 @@ Pour aller plus loin, voir "[MODBUS Protocol Specification](https://modbus.org/s
 MODBUS utilise une représentation «big-endian» pour les adresses et les éléments de données. Cela signifie que lorsqu'une quantité numérique supérieure à un octet est transmise, l'octet le plus significatif est envoyé en premier.
 
 Donc par exemple, si la taille occupé par une valeur est de 16 bits comme **`0x1234`**, le premier octet envoyé est **`0x12`** puis l'octet suivant sera **`0x34`**.
+http://www.sunshine2k.de/coding/javascript/crc/crc_js.html
 
 Voir également la description d'une trame ([page 12](https://modbus.org/docs/Modbus_over_serial_line_V1_02.pdf)) et [Big Endian and Little Endian](https://www.techno-science.net/definition/240.html) ([Coding](https://www.irif.fr/~carton/Enseignement/Architecture/Cours/Coding/index.html)).
 
@@ -29,7 +32,7 @@ Dans un premier temps, nous allons implémenter une version simple de ce protoco
 Le but est simplement de pouvoir capturer une trame au format [ASCII](https://en.wikipedia.org/wiki/ASCII) de manière autonome, en créant une machine à états.
 
 Après détection de la fin de la trame, nous rajoutons à notre protocol maison le calcul et la vérification d'un CRC16.
-Ce champ de vérification des erreurs basé sur une méthode de vérification de redondance cyclique (CRC), est appliquée au contenu du message.
+Ce champ de vérification des erreurs basé sur une méthode de vérification de redondance cyclique (CRC), est appliquée au contenu du message ([Learn about error detection](https://eater.net/crc[[[[](https://eater.net/crc)](https://eater.net/crc)](https://eater.net/crc)](https://eater.net/crc))).
 Par exemple si vous avez une valeur de CRC16 de 0x1234, voici comment ils seront intégrés à notre trame en convertissant chacun des digits en valeur ASCII :
 
 | Start     | Data     |     CRC16       |    End    |
@@ -52,6 +55,8 @@ Source : <http://www.ozeki.hu/p_5855-ozeki-modbus-ascii.html>
 ---
 
 ## Test de reception d'une trame
+
+Configuration des échanges séries à 9600 bps 8N1.
 
 Exemple de messages que doit recevoir le microcontrôleur pour changer l'état de notre LED :
 

@@ -25,7 +25,7 @@ typedef enum
     RX_STATE_WAIT_EOF
 } fsm_rx_state_typedef;
 
-void serialEvent()
+void myserialEvent()
 {
     static uint8_t _index_du_buffer = 0;                               // itérateur qui permet d'indexer le buffer des données reçues
     static fsm_rx_state_typedef _mae_rx_etat_en_cours = RX_STATE_IDLE; // stock l'état courant de la réception d'un message
