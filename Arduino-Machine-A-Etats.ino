@@ -22,37 +22,75 @@
 
 */
 
+#define VERSION "0.0.1"
+
+// Définition des E/S matérielles - Definition of hardware I/O (GPIO)
+#define LED_PIN LED_BUILTIN // le numéro de la broche utilisé pour le pilotage de la LED
+
+// Variable globales
 String inputString = "";     // a String to hold incoming data
 bool stringComplete = false; // whether the string is complete
 
-// RX_STATE_IDLE
-// RX_STATE_RECEIVED
+// Fonction permettant le changement d'état d'une sortie
+void GPIO_ToggleOutput(uint8_t output_pin)
+{
+    digitalWrite(output_pin, !digitalRead(output_pin));
+}
 
 void setup()
 {
+    // Initialiser les broches d'entrées/sorties
+    pinMode(LED_PIN, OUTPUT);
+
     // initialize serial:
     Serial.begin(9600);
+
     // reserve 200 bytes for the inputString:
     inputString.reserve(200);
 
-    Serial.println("Demo MAE Version 0.0.1\n");
+    Serial.println(String("Demo MAE/FSM Version ") + VERSION);
+    Serial.println(String("sketch: ") + __FILE__ + ", built on " + __DATE__);
 }
 
 void loop()
 {
-    // serialEvent();  
-    // pas nécessaire car l'appel à serialEvent() s'effectue par défaut à chaque "loop"
+    // Appel de la routine de réception des données du port série
+    serialEvent();
 
+    // Gestion de l'arrivée d'un nouveau message depuis le port série
     if (stringComplete)
     {
         Serial.println(); // faire un saut de ligne entre les réponses
         Serial.print("Le message recu est : ");
         Serial.println(inputString);
 
-        // test de la réponse du joueur
-        if (inputString == ":LED2ON\r\n")
+        // Comparaison avec les différentes commandes
+        // lorsque la fonction strcmp retourne zéro, c'est qu'il y a égalité entre les deux chaînes comparées
+        if ((inputString == ":AIDE\r\n") || (inputString == ":aide\r\n"))
         {
-            Serial.println("Vous voulez allumer la LED 2");
+            // Si l'on reçoit "AIDE" ou "aide" alors on affiche l'aide
+            Serial.println("Voici la liste des commandes pour changer l'etat de la LED :");
+            Serial.println("  - \":LED ON<CR><LF>\"");
+            Serial.println("  - \":LED OFF<CR><LF>\"");
+            Serial.println("  - \":LED TOGGLE<CR><LF>\"");
+        }
+        else if (inputString == ":LED ON\r\n")
+        {
+            // Si l'on reçoit "LED ON" alors on allume la LED
+            Serial.println("Allumage de la LED.");
+            digitalWrite(LED_PIN, HIGH);
+        }
+        else if (inputString == ":LED OFF\r\n")
+        {
+            // Si l'on reçoit "LED OFF" alors on éteint la LED
+            Serial.println("Extinction de la LED.");
+            digitalWrite(LED_PIN, LOW);
+        }
+        else if (inputString == ":LED TOGGLE\r\n")
+        {
+            // Si l'on reçoit "LED TOGGLE" alors on change l'état de la LED
+            Serial.println("Inverser l'etat de la LED.");
+            GPIO_ToggleOutput(LED_PIN);
         }
         else
         {
@@ -76,8 +114,10 @@ void serialEvent()
     {
         // get the new byte:
         char inChar = (char)Serial.read();
+
         // add it to the inputString:
-        inputString += inChar; // ":LED2ON\r\n"
+        inputString += inChar; // ":LED ON\r\n"
+
         // if the incoming character is a newline, set a flag so the main loop can
         // do something about it:
         if (inChar == '\n')
