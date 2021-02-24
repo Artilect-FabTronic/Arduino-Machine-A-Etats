@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 
 import serial.tools.list_ports
+
 
 def get_port_list():
     ports = serial.tools.list_ports.comports(include_links=False)
