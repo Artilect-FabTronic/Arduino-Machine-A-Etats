@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from nanoterm.ui import NanoTermUI
 
