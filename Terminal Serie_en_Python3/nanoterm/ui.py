@@ -12,11 +12,12 @@ import tkinter.ttk as ttk
 
 import serial
 
-import nanoterm.model as nanomodel
+from . import model as nanomodel
 
-DEFAULT_TITLE ='Comm with a serial port'
+DEFAULT_TITLE = 'Comm with a serial port'
 
 PREF_FILENAME = "nanoterm.prefs"
+
 
 class NanoTermUI:
 
@@ -47,7 +48,7 @@ class NanoTermUI:
         tk.Button(self.root, textvariable=self.connect_label_var, command=self.on_connect_click).grid(column=2, row=0)
 
         tk.Label(self.root, text="Send").grid(column=0, row=1, sticky=tk.W)
-        self.command_entry = entry =  tk.Entry(self.root, textvariable=self.command_var, state="disabled")
+        self.command_entry = entry = tk.Entry(self.root, textvariable=self.command_var, state="disabled")
         entry.grid(column=0, row=2, columnspan=2, sticky=tk.E+tk.W)
         entry.bind('<Return>', self.on_command_send)
         self.send_button = tk.Button(self.root, text="Send", command=self.on_command_send, state="disabled")
@@ -123,7 +124,7 @@ class NanoTermUI:
             self.command_var.set("")
 
     def save_settings(self):
-        pref_dict = { "last_port":  self.current_port_var.get()}
+        pref_dict = {"last_port":  self.current_port_var.get()}
         with open(PREF_FILENAME, "wb") as fd:
             pickle.dump(pref_dict, fd)
 
