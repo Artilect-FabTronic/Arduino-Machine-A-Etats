@@ -1,4 +1,8 @@
-# Une arborescence d'un projet
+# Terminal série
+
+Lancer le programme Python en double cliquant sur le fichier "nanoterm.bat"
+
+## Une arborescence d'un projet
 
 nanoterm <DIR>
 nanoterm.bat

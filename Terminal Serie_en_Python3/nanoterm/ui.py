@@ -1,7 +1,8 @@
 """
-Created on 03/03/2019
+Created on 2021-02-22
 
-@author: https://github.com/fgirault
+@author: https://github.com/ArnauldDev
+@author original: https://github.com/fgirault (03/03/2019)
 
 """
 
@@ -14,9 +15,10 @@ import serial
 
 import nanoterm.model as nanomodel
 
-DEFAULT_TITLE ='Comm with a serial port'
+DEFAULT_TITLE = 'Terminal série'
 
 PREF_FILENAME = "nanoterm.prefs"
+
 
 class NanoTermUI:
 
@@ -40,21 +42,30 @@ class NanoTermUI:
         self.connect_label_var.set("Connect")
         self.command_var = tk.StringVar()
 
-        tk.Label(self.root, textvariable=self.current_label_var).grid(column=0, row=0, sticky=tk.E)
-        self.combobox = ttk.Combobox(self.root, state="readonly", justify="left", textvariable=self.current_port_var)
+        tk.Label(self.root, textvariable=self.current_label_var).grid(
+            column=0, row=0, sticky=tk.E)
+        self.combobox = ttk.Combobox(
+            self.root, state="readonly", justify="left", textvariable=self.current_port_var)
         self.combobox.bind("<<ComboboxSelected>>", self.on_port_select)
         self.combobox.grid(column=1, row=0, sticky=tk.E+tk.W)
-        tk.Button(self.root, textvariable=self.connect_label_var, command=self.on_connect_click).grid(column=2, row=0)
+        tk.Button(self.root, textvariable=self.connect_label_var,
+                  command=self.on_connect_click).grid(column=2, row=0)
 
         tk.Label(self.root, text="Send").grid(column=0, row=1, sticky=tk.W)
-        self.command_entry = entry =  tk.Entry(self.root, textvariable=self.command_var, state="disabled")
+        self.command_entry = entry = tk.Entry(
+            self.root, textvariable=self.command_var, state="disabled")
         entry.grid(column=0, row=2, columnspan=2, sticky=tk.E+tk.W)
         entry.bind('<Return>', self.on_command_send)
-        self.send_button = tk.Button(self.root, text="Send", command=self.on_command_send, state="disabled")
+        self.send_button = tk.Button(
+            self.root, text="Send", command=self.on_command_send, state="disabled")
         self.send_button.grid(column=2, row=2, sticky=tk.E+tk.W)
 
-        tk.Label(self.root, text="Received data").grid(column=0, row=3, sticky=tk.W)
+        tk.Label(self.root, text="Received data").grid(
+            column=0, row=3, sticky=tk.W)
         self.tktext = tktext = tk.Text(self.root)
+        # build, next to self.tktext declaration
+        self.tktext.tag_config("rx_data", foreground="red")  # définir la couleur rouge pour la reception
+        self.tktext.tag_config("tx_data", foreground="blue")  # définir la couleur bleu pour la transmission
         tktext.grid(column=0, row=4, columnspan=3, sticky=tk.N+tk.S+tk.E+tk.W)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(4, weight=1)
@@ -98,7 +109,8 @@ class NanoTermUI:
             try:
                 self.serial = serial.Serial(port_name, 115200)
             except serial.serialutil.SerialException as error:
-                self.tktext.insert(tk.END, port_name + ":" + str(error) + os.linesep)
+                self.tktext.insert(tk.END, port_name +
+                                   ":" + str(error) + os.linesep)
             else:
                 self.rxmonitor()
                 self.current_label_var.set("Connected to: ")
@@ -111,19 +123,21 @@ class NanoTermUI:
     def rxmonitor(self):
         if self.is_connected and self.serial.in_waiting:
             data = self.serial.read(self.serial.in_waiting)
-            self.tktext.insert(tk.END, b"RX: " + data + bytes(os.linesep, "utf-8"))
+            # self.tktext.insert(tk.END, b"[RX] " + data + bytes(os.linesep, "utf-8")) # sans la couleur
+            self.tktext.insert(tk.END, b"[RX] " + data + bytes(os.linesep, "utf-8"), ("rx_data",) )
             self.tktext.see(tk.END)
         self.root.after(self.rx_refresh, self.rxmonitor)
 
     def on_command_send(self, *args):
         if self.is_connected:
-            self.tktext.insert(tk.END, "TX: " + self.command_var.get() + os.linesep)
+            # self.tktext.insert(tk.END, "[TX] " + self.command_var.get() + os.linesep) # sans la couleur
+            self.tktext.insert(tk.END, "[TX] " + self.command_var.get() + os.linesep, ("tx_data",) )
             self.tktext.see(tk.END)
             self.serial.write(bytes(self.command_var.get(), "utf-8"))
             self.command_var.set("")
 
     def save_settings(self):
-        pref_dict = { "last_port":  self.current_port_var.get()}
+        pref_dict = {"last_port":  self.current_port_var.get()}
         with open(PREF_FILENAME, "wb") as fd:
             pickle.dump(pref_dict, fd)
 
