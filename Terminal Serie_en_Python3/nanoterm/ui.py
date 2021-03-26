@@ -12,7 +12,7 @@ import tkinter.ttk as ttk
 
 import serial
 
-from . import model as nanomodel
+from .model import get_port_list
 
 DEFAULT_TITLE = 'Comm with a serial port'
 
@@ -65,7 +65,7 @@ class NanoTermUI:
             self.serial.close()
 
     def refresh_ports(self):
-        values = nanomodel.get_port_list()
+        values = get_port_list()
         self.combobox.configure(values=values)
         if os.path.exists(PREF_FILENAME):
             with open(PREF_FILENAME, "rb") as fd:
