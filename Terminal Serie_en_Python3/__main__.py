@@ -2,7 +2,12 @@
 
 from nanoterm.ui import NanoTermUI
 
-app = NanoTermUI()
 
-app.launch()
+def main():
+    app = NanoTermUI()
+    app.launch()
+
+
+if __name__ == '__main__':
+    main()
 
