@@ -1,20 +1,20 @@
 # Arduino-Machine-A-Etats
 
-Ce projet collaboratif a pour but de comprendre le fonctionnement et l'implementation des machines à états pour structurer un programme embarqué.
+Ce projet collaboratif a pour but de comprendre le fonctionnement et l’implementation des machines à états pour structurer un programme embarqué.
 
 Nous allons pour cela mettre en oeuvre une partie du [protocol Modbus](https://www.modbustools.com/modbus.html) qui peut être composé soit de données brut "RTU", soit de données textes "ASCII".
 
 [Format de message Modbus ASCII](https://www.virtual-serial-port.org/fr/articles/modbus-ascii-guide/)
 
-Le format des messages Modbus ASCII comprend un caractère de début qui est un deux-points ':' et la fin du message est définie par la combinaison d'un retour à la ligne et d'un saut de ligne (CR LF). Ce type de protocole permet de faire varier le temps de transmission de chaque donnée du message, comme lorsque celui-ci est entrée à la main dans un terminal.
+Le format des messages Modbus ASCII comprend un caractère de début qui est un deux-points ':' et la fin du message est définie par la combinaison d’un retour à la ligne et d’un saut de ligne (CR LF). Ce type de protocole permet de faire varier le temps de transmission de chaque donnée du message, comme lorsque celui-ci est entré à la main dans un terminal.
 
-Voici une description complète d'un message Modbus ASCII :
+Voici une description complète d’un message Modbus ASCII :
 
 | Start | Address | Function | Data    |   LRC   |  End  |
 | :---: | :-----: | :------: | :------ | :-----: | :---: |
 |  ':'  | 2 Chars | 2 Chars  | N Chars | 2 Chars | CR LF |
 
-Dans un premier temps, nous allons implémenter une version simple de ce protocol, sans ajouter à la trame l'adresse d'un destinataire, ni la valeur numérique permettant de vérifier l'intégrité des données de la trame. La gestion "Error Checking" du protocole (vérification d'erreur) ne sera donc pas implémentée.
+Dans un premier temps, nous allons implémenter une version simple de ce protocol, sans ajouter à la trame l’adresse d’un destinataire, ni la valeur numérique permettant de vérifier l’intégrité des données de la trame. La gestion "Error Checking" du protocole (vérification d’erreur) ne sera donc pas implémentée.
 
 Le but est simplement de pouvoir capturer une trame au format [ASCII](https://en.wikipedia.org/wiki/ASCII) de manière autonome, en créant une machine à états.
 
@@ -24,17 +24,17 @@ Le but est simplement de pouvoir capturer une trame au format [ASCII](https://en
 
 Pour la réception de données à travers le port COM principale de la carte Arduino, nous utiliserons la fonction serialEvent() et nous prendrons soin de ne pas écraser un message par un nouveau avant d'avoir pu le lire.
 
-Pour cela vous pouvez vous inspirez du diagramme d'états ci-dessous.
+Pour cela vous pouvez vous inspirez du diagramme d’états ci-dessous.
 
 ---
 
-## Quelques protocoles de communication que l'on retrouve sur le port série
+## Quelques protocoles de communication que l’on retrouve sur le port série
 
-Les communications en série sont un moyen simple et souple pour mettre de l’intéraction entre la board Arduino, votre ordinateur et ainsi que d’autres périphériques. Votre sketch Arduino pourra utiliser le port série pour accéder indirectement (souvent par un proxy et dans un langage [Processing](https://processing.org/) ou en Python) à toutes les ressources de votre ordinateur. Dans l’autre sens, votre ordinateur saura évidement intéragir avec certains capteurs ou périphériques connectés à votre Arduino. Si vous souhaitiez utiliser plusieurs périphériques nécessitant plusieurs communications en série, soit vous utiliserez plus d’un port série, soit vous utiliserez un emulateur de port série qui utilisera les pins du microcontroller Arduino Uno. Certaines bibliothèques Arduino font cela très bien, citons le/la Software Serial Library.
+Les communications en série sont un moyen simple et souple pour mettre de l’interaction entre la board Arduino, votre ordinateur et ainsi que d’autres périphériques. Votre sketch Arduino pourra utiliser le port série pour accéder indirectement (souvent par un proxy et dans un langage [Processing](https://processing.org/) ou en Python) à toutes les ressources de votre ordinateur. Dans l’autre sens, votre ordinateur saura évidement interagir avec certains capteurs ou périphériques connectés à votre Arduino. Si vous souhaitiez utiliser plusieurs périphériques nécessitant plusieurs communications en série, soit vous utiliserez plus d’un port série, soit vous utiliserez un émulateur de port série qui utilisera les pins du microcontroller Arduino Uno. Certaines bibliothèques Arduino font cela très bien, citons le/la Software Serial Library.
 
-Les protocoles de communications en série permettent de transmettre des données, avec l’avantage par rapport à la communication en parallèle de pallier les interférences éloctromagnétiques. Parmi les protocoles de communications en série citons :
+Les protocoles de communications en série permettent de transmettre des données, avec l’avantage par rapport à la communication en parallèle de pallier les interférences électromagnétiques. Parmi les protocoles de communications en série citons :
 
-* RS232 : utilisé par les souris avant l’arrivée du port USB au milieu des années 2000. C’est une transmissions dite asynchrone, car dépourvue d’horloge.
+* RS232 : utilisé par les souris avant l’arrivée du port USB au milieu des années 2000. C’est une transmission dite asynchrone, car dépourvue d’horloge.
 * Hayes command set : c’est un langage de commande dédié au modem Smartmodem 300 bauds en 1981.
 
 Dans une communication en série, il est important de mesurer la force du signal et la solidité de la connexion pour déterminer un protocole cohérent.
@@ -61,7 +61,7 @@ Pour prolonger leur étude, vous pouvez utiliser le Serial Monitor de l’IDE Ar
 
 ---
 
-## Algorithme d'émission/réception d'un message Modbus ASCII
+## Algorithme d’émission/réception d’un message Modbus ASCII
 
 ![modbus-ascii-fsm-message](Images/modbus-ascii-fsm-message.png)
 
@@ -79,7 +79,7 @@ Exemple de messages que doit recevoir le microcontrôleur pour changer l'état d
 ":LED TOGGLE\r\n"
 ```
 
-Mais si vous essayez d'écrire une commande en minuscule, ça ne fonctionne pas :
+Mais si vous essayez d’écrire une commande en minuscule, ça ne fonctionne pas :
 
 ":led toggle\r\n"
 
@@ -102,7 +102,7 @@ Ce codage est défini par [le code ASCII](https://www.commentcamarche.net/conten
 
 ### Codage réalisé
 
-A partir de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino, nous avons commencé à modifier la manière de recevoir les données pour créer une machine à états.
+À partir de l’exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino, nous avons commencé à modifier la manière de recevoir les données pour créer une machine à états.
 
 [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph), l'extension pour Visual Studio Code
 
@@ -112,7 +112,7 @@ A partir de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInE
 
 #### Code de la branche **main**
 
-Utilisation direct de l'exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino.
+Utilisation directe de l’exemple [Serial Event](https://www.arduino.cc/en/Tutorial/BuiltInExamples/SerialEvent) d'Arduino.
 
 ---
 
@@ -130,6 +130,6 @@ La machine à états principale pour la reception est dans la fonction :
 
 #### Code de la branche **Arnauld** de ArnauldDev
 
-Décomposé en plusieurs branches, celle-ci met en oeuvre l'implementation d'une machine à états pour être identique à la branche **main**.
+Décomposé en plusieurs branches, celle-ci met en oeuvre l’implementation d’une machine à états pour être identique à la branche **main**.
 
-La branche **Arnauld-Trame-Avec-CRC16** permet de rajouter le calcul et l'integration du CRC16 pour la reception d'un message.
+La branche **Arnauld-Trame-Avec-CRC16** permet de rajouter le calcul et l’integration du CRC16 pour la reception d’un message.
